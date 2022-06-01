@@ -7,10 +7,16 @@ from splinter import Browser
 import pymongo
 from flask import Flask, render_template, redirect
 from flask_pymongo import PyMongo
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
 
-def scrape_all():
-    executable_path = {'executable_path': ChromeDriverManager().install()}
-    browser = Browser("chrome", **executable_path, headless=False)
+# Import Splinter and set the chromedriver path
+executable_path = {
+    "executable_path": ChromeDriverManager().install()}
+browser = Browser("chrome", **executable_path, headless=False)
+
+
+def scrape():
 
     # In[28]:
     mars_info_dict = dict()
@@ -49,25 +55,20 @@ def scrape_all():
     soup = bs(html, "html.parser")
 
     # In[85]:
-    featured_image = soup.find(class_='thumbimg')
+    featured_image = soup.find('img',class_ = 'thumbimg').get('src')
 
     # In[90]:
-    featured_image = featured_image['data-thumbimg-href']
+    featured = featured_image['data-fancybox-href']
 
     # In[91]:
-    image_url = f'https://data-class-jpl-space.s3.amazonaws.com/JPL_Space/index.html/{featured_image}'
+    featured_image_url = "https://data-class-jpl-space.s3.amazonaws.com/JPL_Space/index.html" + featured
 
     mars_info_dict['featured_image_urls'] = featured_image_url
 
-    # Mars Weather
-
-    # In[62]:
-    # Visit the following URL
-
     # Mars Facts
     # In[78]:
-    df = pd.read_html('https://space-facts.com/mars/')[0]
-    # df = mars_facts[0]
+    mars_facts = pd.read_html('https://space-facts.com/mars/')
+    mars_facts_df = mars_facts[0]
 
     # In[79]:
     mars_facts_html = mars_facts_df.to_html(buf=None, columns=None, col_space=None, header=True, index=True, na_rep='NaN', formatters=None, float_format=None, sparsify=None,
@@ -78,7 +79,7 @@ def scrape_all():
     # Mars Hemispheres
 
     # In[50]:
-    url_hemispherecerberus = 'https://astrogeology.usgs.gov/search/map/Mars/Viking/cerberus_enhanced'
+    url_hemispherecerberus = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
     browser.visit(url_hemispherecerberus)
     html = browser.html
     soup = bs(html, 'html.parser')
@@ -145,8 +146,7 @@ def scrape_all():
         "News_Title": mars_info_dict["news_titles"],
         "News_Summary": mars_info_dict["news_paragraph"],
         "Featured_Image": mars_info_dict["featured_image_urls"],
-        "Weather_Tweet": mars_info_dict["mars_weathers"],
-        "Facts_Table": mars_facts_htmls,
+        "Facts_Table": mars_facts_html,
         "Hemisphere_Image_urls": hemisphere_image_urls
     }
 
